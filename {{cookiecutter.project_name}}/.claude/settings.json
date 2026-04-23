@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Reminder: All code must pass mypy strict and ruff. Use Google-style docstrings.'"
+            "command": "echo 'Reminder: All code must pass mypy strict and ruff. Use Google-style docstrings. Design: OOP for stateful entities, functional for data transforms, async only for I/O-bound work, multiprocessing for CPU-bound. Apply patterns only when they solve real complexity.'"
           }
         ]
       }

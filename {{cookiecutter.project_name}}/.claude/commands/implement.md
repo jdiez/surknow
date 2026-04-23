@@ -8,11 +8,16 @@ Follow this workflow strictly:
 4. **Verify types**: Run `uv run mypy` after each module change
 5. **Verify lint**: Run `uv run ruff check --fix` and `uv run ruff format`
 6. **Run full suite**: `uv run python -m pytest tests -v` — all tests must pass
-7. **Review**: Check that all new code follows project conventions:
+7. **Design review** — before finalizing, check each new file against Design Principles:
+   - **Paradigm**: Classes used for stateful entities? Functions for pure transforms? No single-method classes that should be functions?
+   - **Patterns**: Applied only where they solve real complexity? No premature abstraction? Protocols over deep inheritance?
+   - **Concurrency**: async only for I/O-bound? multiprocessing for CPU-bound? sync by default unless measured need?
+   - **Error handling**: Specific exceptions? Validation at boundaries only? No bare `except`?
+8. **Convention review** — verify project standards:
    - Type annotations on all public functions
    - Google-style docstrings on all public functions/classes
    - structlog logger if the module does any logging
    - Pydantic models use `frozen=True`
    - No `list` where `tuple` should be used for immutable collections
 
-Report a summary of what was implemented, tests added, and any design decisions made.
+Report a summary of what was implemented, tests added, and design decisions made (which paradigm/pattern chosen and why).

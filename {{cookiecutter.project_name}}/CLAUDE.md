@@ -135,6 +135,35 @@ make docs-test   # Verify docs build cleanly
 - Tests go in `tests/` mirroring source structure
 - Test files may use `assert` (S101 suppressed in `tests/`)
 
+## Design Principles
+
+### Choose the right paradigm for the problem
+
+- **OOP when modeling entities with state and behavior** — domain objects, services with lifecycle, anything where identity and encapsulation matter. Use classes, inheritance (prefer composition), and protocols.
+- **Functional when transforming data** — pure functions for pipelines, data processing, validation logic, anything stateless. Prefer `map`/`filter`/`reduce`, comprehensions, and `functools` over mutable loops.
+- **Don't force one paradigm everywhere.** A module can mix both. A class can have functional helper functions. A data pipeline doesn't need a class wrapper.
+
+### Design patterns — use when they solve a real problem
+
+- **Apply patterns to solve actual complexity**, not to add structure for its own sake. A Strategy pattern is warranted when you have 3+ interchangeable algorithms; a single `if/else` doesn't need it.
+- **Prefer simple over clever.** A function is better than a class with one method. A dict is better than a Factory when you have a static mapping. Protocols are better than deep inheritance hierarchies.
+- **Common patterns that fit Python well:** Strategy (callables/protocols), Factory (classmethods), Observer (callbacks/signals), Builder (fluent APIs / dataclass construction), Repository (data access abstraction).
+- **Patterns to avoid unless truly needed:** Singleton (use module-level instances), Abstract Factory (over-engineering in Python), Visitor (use `match`/`functools.singledispatch` instead).
+
+### Async and concurrency — match the workload
+
+- **Use `async`/`await` for I/O-bound concurrency** — network calls, database queries, file I/O, external APIs. Don't make things async "just in case."
+- **Use `multiprocessing` / `concurrent.futures.ProcessPoolExecutor` for CPU-bound parallelism** — heavy computation, data crunching, image processing. The GIL makes threading useless here.
+- **Use `threading` / `concurrent.futures.ThreadPoolExecutor` for I/O-bound parallelism in sync code** — when async isn't feasible (legacy code, sync libraries).
+- **Default to sync.** Only introduce async or multiprocessing when there's a measurable performance need or the workload naturally demands it. Premature concurrency adds complexity without benefit.
+- **Never mix paradigms carelessly.** Don't call sync blocking code inside async functions without `asyncio.to_thread()`. Don't share mutable state across processes without explicit synchronization.
+
+### Error handling
+
+- **Fail fast and explicitly.** Raise specific exceptions at the point of failure. Don't swallow errors or return `None` to signal failure.
+- **Custom exceptions for domain errors.** Use a project exception hierarchy rooted in a base class. Catch specific exceptions, not bare `except`.
+- **Validate at boundaries, trust internally.** Validate user input, API responses, and external data. Internal function calls between trusted modules don't need redundant validation.
+
 ## Logging Convention — structlog
 
 **This project uses structlog for structured logging.** If this is a library, never configure structlog output — only bind context and emit events. App consumers own configuration.
