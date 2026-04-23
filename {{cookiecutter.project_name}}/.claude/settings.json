@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync)",
+      "Bash(uv run python -m pytest*)",
+      "Bash(uv run mypy*)",
+      "Bash(uv run ruff*)",
+      "Bash(uv run pre-commit*)",
+      "Bash(uv lock*)",
+      "Bash(uv add*)",
+      "Bash(uv remove*)",
+      "Bash(make *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)"
+    ],
+    "deny": [
+      "Bash(pip install*)",
+      "Bash(pip *)",
+      "Bash(conda *)",
+      "Bash(poetry *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Reminder: All code must pass mypy strict and ruff. Use Google-style docstrings.'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.py ]]; then uv run ruff check --fix \"$filepath\" 2>/dev/null; uv run ruff format \"$filepath\" 2>/dev/null; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

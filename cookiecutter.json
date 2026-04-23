@@ -1,0 +1,48 @@
+{
+  "author": "Your Name",
+  "email": "you@example.com",
+  "author_github_handle": "your-github-handle",
+  "project_name": "my-python-project",
+  "project_slug": "{{cookiecutter.project_name|lower|replace('-', '_')}}",
+  "project_description": "A Python package.",
+  "layout": [
+    "src",
+    "flat"
+  ],
+  "include_github_actions": [
+    "y",
+    "n"
+  ],
+  "publish_to_pypi": [
+    "y",
+    "n"
+  ],
+  "deptry": [
+    "y",
+    "n"
+  ],
+  "docs_tool": [
+    "mkdocs",
+    "none"
+  ],
+  "codecov": [
+    "y",
+    "n"
+  ],
+  "dockerfile": [
+    "y",
+    "n"
+  ],
+  "devcontainer": [
+    "y",
+    "n"
+  ],
+  "open_source_license": [
+    "MIT license",
+    "BSD license",
+    "ISC license",
+    "Apache Software License 2.0",
+    "GNU General Public License v3",
+    "Not open source"
+  ]
+}
