@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-05-05
+
+### Added
+
+- **"How to Work in This Codebase" section**: AI behavioral guidelines (think-first, surgical changes, goal-driven execution) inspired by Karpathy's coding philosophy
+- **"What NOT to Do" section**: 9 explicit anti-patterns as AI guardrails (no pip, no manual venvs, no bare type: ignore, etc.)
+- **Expanded dependency commands**: `uv add --dev`, `uv remove`, `uv lock`, `uv lock --upgrade`, named dependency groups
+- **`uvx` one-off tool execution**: guidance for running tools not in project dependencies
+- **Version tracking header**: `<!-- Last verified against: uv 0.7.x, ruff 0.11.x, mypy 1.15.x, pytest 8.x -->`
+- **No `__init__.py` in tests** note in Toolchain section
+
+### Changed
+
+- Dependency example uses `--dev` (PEP 735) instead of verbose `--group dev`
+
 ## [0.1.0] - 2026-04-23
 
 ### Added

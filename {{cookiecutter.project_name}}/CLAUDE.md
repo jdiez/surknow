@@ -1,10 +1,26 @@
 {% raw %}# CLAUDE.md
 
+<!-- Generated from cookie-claude template -->
+<!-- Last verified against: uv 0.7.x, ruff 0.11.x, mypy 1.15.x, pytest 8.x -->
+
 This file provides guidance to Claude Code when working with this repository.
 {% endraw %}
 ## What This Is
 
 **{{cookiecutter.project_name}}** — {{cookiecutter.project_description}}
+
+## How to Work in This Codebase
+
+**Think first.** Before implementing, state assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If something is unclear, stop and ask.
+
+**Surgical changes only.** Touch only what the task requires. Don't "improve" adjacent code, comments, or formatting. Match existing style even if you'd do it differently. If your changes create orphans (unused imports/variables), remove those — but don't remove pre-existing dead code unless asked.
+
+**Goal-driven execution.** Transform vague tasks into verifiable steps:
+- "Add validation" → write tests for invalid inputs, then make them pass
+- "Fix the bug" → write a test that reproduces it, then fix it
+- "Refactor X" → ensure tests pass before and after
+
+For multi-step tasks, state a brief plan with verification at each step before proceeding.
 
 ## uv Environment — PIVOTAL
 
@@ -29,7 +45,17 @@ uv run ruff check .      # Correct
 When adding dependencies:
 {% raw %}```bash
 uv add pydantic                    # Add runtime dependency
-uv add --group dev pytest          # Add dev dependency
+uv add --dev pytest                # Add dev dependency (PEP 735 dependency-groups)
+uv add --group docs mkdocs         # Add to a named dependency group
+uv remove requests                 # Remove a dependency
+uv lock                            # Regenerate lockfile from constraints
+uv lock --upgrade                  # Upgrade all locked versions
+```{% endraw %}
+
+One-off tool execution (not a project dependency):
+{% raw %}```bash
+uvx ruff check .                   # Run tool without installing into project
+uvx pre-commit install             # Install hooks via uvx
 ```{% endraw %}
 
 The `uv.lock` file is the source of truth for reproducible builds. Never edit it manually.
@@ -115,7 +141,7 @@ make docs-test   # Verify docs build cleanly
 {%- if cookiecutter.deptry == "y" %}
 - **Dependency auditing:** deptry
 {%- endif %}
-- **Testing:** pytest (doctests enabled)
+- **Testing:** pytest (doctests enabled, no `__init__.py` in `tests/`)
 {%- if cookiecutter.docs_tool == "mkdocs" %}
 - **Docs:** MkDocs + Material theme + mkdocstrings
 {%- endif %}
@@ -246,6 +272,18 @@ def my_function(arg: str) -> bool:
 
 mkdocstrings is configured to parse Google-style docstrings for auto-generated API docs.
 {%- endif %}
+
+## What NOT to Do
+
+- **Do not create or activate virtual environments manually.** uv manages `.venv/` automatically.
+- **Do not install packages globally or with `pip install`.** Use `uv add` or `uvx`.
+- **Do not create `requirements.txt`** for dependency management. Use `pyproject.toml` and `uv.lock`.
+- **Do not run `python`, `pytest`, `ruff`, or other tools directly.** Always prefix with `uv run`. They may not resolve to the project's virtual environment.
+- **Do not run `python setup.py` commands.** This project uses `pyproject.toml` (PEP 621).
+- **Do not add dependencies to `pyproject.toml` by hand.** Use `uv add`. If you must edit directly, write dev dependencies under `[dependency-groups]` (PEP 735), not any legacy table.
+- **Do not add `# type: ignore` without an error code.** Use `# type: ignore[specific-error]`.
+- **Do not put `__init__.py` in the `tests/` directory.** pytest discovers tests without it.
+- **Do not use `setup.cfg` or `setup.py`.** All metadata belongs in `pyproject.toml`.
 
 ## Release Discipline
 

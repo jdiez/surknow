@@ -44,7 +44,7 @@ uvx cookiecutter https://github.com/jdiez/cookie-claude.git \
 
 | File | Purpose |
 |------|---------|
-| `CLAUDE.md` | Full Python dev guidance — uv conventions, toolchain, code style, structlog, Google docstrings |
+| `CLAUDE.md` | Full Python dev guidance — AI behavior guidelines, uv conventions, toolchain, code style, structlog, Google docstrings, anti-patterns |
 | `.claude/settings.json` | Auto-allow uv/make/git commands, deny pip/conda, auto-format on file write |
 | `.claude/commands/check` | Run full quality suite and fix issues |
 | `.claude/commands/test` | Run tests with verbose output |
