@@ -36,6 +36,7 @@ dev = [
     "mypy>=1.19.0",
     {% if cookiecutter.codecov == 'y' %}"pytest-cov>=7.0.0",{% endif %}
     "ruff>=0.15.0",
+    "bandit[toml]>=1.8.0",
     {%- if cookiecutter.docs_tool == 'mkdocs' %}
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.7.0",
@@ -149,6 +150,13 @@ convention = "google"
 
 [tool.ruff.format]
 preview = true
+
+[tool.bandit]
+exclude_dirs = [".venv", "venv", "build", "dist"]
+skips = ["B101"]
+
+[tool.bandit.assert_used]
+skips = ["*/tests/*"]
 
 {% if cookiecutter.codecov == "y" -%}
 [tool.coverage.report]

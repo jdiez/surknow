@@ -17,6 +17,16 @@ check: ## Run code quality tools.
 	@uv run deptry {% if cookiecutter.layout == "src" %}src{% else %}.{% endif %}
 {%- endif %}
 
+.PHONY: security
+security: ## Run security scanning with bandit
+{%- if cookiecutter.layout == "src" %}
+	@echo "Security scanning: Running bandit"
+	@uv run bandit -r src/ -c pyproject.toml -ll
+{%- else %}
+	@echo "Security scanning: Running bandit"
+	@uv run bandit -r {{cookiecutter.project_slug}}/ -c pyproject.toml -ll
+{%- endif %}
+
 .PHONY: test
 test: ## Test the code with pytest
 	@echo "Testing code: Running pytest"

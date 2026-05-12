@@ -120,6 +120,7 @@ All commands use uv under the hood:
 {% raw %}```bash
 make install     # uv sync + pre-commit install
 make check       # Lock consistency, pre-commit, mypy, deptry
+make security    # Bandit security scan (hardcoded secrets, eval, pickle, SQL injection)
 make test        # uv run pytest with doctests
 make build       # Build wheel via uv
 ```{% endraw %}
@@ -145,7 +146,8 @@ make docs-test   # Verify docs build cleanly
 {%- if cookiecutter.docs_tool == "mkdocs" %}
 - **Docs:** MkDocs + Material theme + mkdocstrings
 {%- endif %}
-- **Pre-commit:** ruff, pre-commit-hooks (debug-statements, detect-private-key)
+- **Security scanning:** bandit (AI-code antipatterns: hardcoded secrets, eval/exec, pickle, SQL injection, weak hashes, unsafe YAML)
+- **Pre-commit:** ruff, bandit, pre-commit-hooks (debug-statements, detect-private-key)
 {%- if cookiecutter.include_github_actions == "y" %}
 - **CI:** GitHub Actions on PR and merge to main
 {%- endif %}
@@ -160,6 +162,25 @@ make docs-test   # Verify docs build cleanly
 - Enums use `(str, Enum)` mixin for JSON serialization
 - Tests go in `tests/` mirroring source structure
 - Test files may use `assert` (S101 suppressed in `tests/`)
+
+## Security — bandit enforced
+
+Bandit runs on every commit (pre-commit) and in CI. Key rules for AI-generated code:
+
+| Rule | What it catches | Fix |
+|------|----------------|-----|
+| B105 | Hardcoded passwords/secrets | Use env vars or secrets manager |
+| B307 | `eval()`/`exec()` on untrusted input | Use `ast.literal_eval()` or explicit parsing |
+| B301 | `pickle.load()` on untrusted data | Use JSON or validated formats |
+| B324 | MD5/SHA1 for security | Use `hashlib.sha256()` or higher |
+| B608 | SQL string concatenation | Use parameterized queries |
+| B110 | `try/except/pass` (silent failure) | Log or re-raise with context |
+| B506 | `yaml.load()` without SafeLoader | Use `yaml.safe_load()` |
+
+{% raw %}```bash
+uv run bandit -r src/ -c pyproject.toml -ll   # Run manually
+make security                                  # Via Makefile
+```{% endraw %}
 
 ## Design Principles
 
@@ -282,6 +303,7 @@ mkdocstrings is configured to parse Google-style docstrings for auto-generated A
 - **Do not run `python setup.py` commands.** This project uses `pyproject.toml` (PEP 621).
 - **Do not add dependencies to `pyproject.toml` by hand.** Use `uv add`. If you must edit directly, write dev dependencies under `[dependency-groups]` (PEP 735), not any legacy table.
 - **Do not add `# type: ignore` without an error code.** Use `# type: ignore[specific-error]`.
+- **Do not add `# nosec` without a specific rule code and justification.** Use `# nosec B105 - value from env var, not hardcoded`.
 - **Do not put `__init__.py` in the `tests/` directory.** pytest discovers tests without it.
 - **Do not use `setup.cfg` or `setup.py`.** All metadata belongs in `pyproject.toml`.
 
@@ -290,7 +312,7 @@ mkdocstrings is configured to parse Google-style docstrings for auto-generated A
 Before every **commit**, the following should pass:
 
 {% raw %}```bash
-make check && make test
+make check && make security && make test
 ```{% endraw %}
 
 {%- if cookiecutter.publish_to_pypi == "y" %}

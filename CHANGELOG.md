@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-05-12
+
+### Added
+
+- **Bandit security scanning**: `bandit[toml]>=1.8.0` dev dependency with pyproject.toml configuration
+- **Pre-commit bandit hook**: runs on every commit with `-ll` (medium+ severity)
+- **`make security` target**: standalone bandit scan command
+- **CI security step**: bandit runs in GitHub Actions quality job
+- **CLAUDE.md security section**: table of key bandit rules for AI-generated code (B105, B307, B301, B324, B608, B110, B506)
+- **Claude Code hook**: PostToolUse runs bandit on `.py` files after edit/write, PreToolUse reminder includes security patterns
+- **Permission**: `Bash(uv run bandit*)` auto-allowed in `.claude/settings.json`
+- **Anti-pattern**: "Do not add `# nosec` without a specific rule code and justification" in What NOT to Do
+
 ## [0.2.0] - 2026-05-05
 
 ### Added
