@@ -36,7 +36,8 @@ uvx cookiecutter https://github.com/jdiez/cookie-claude.git \
 | [deptry](https://deptry.com/) | Dependency auditing |
 | [structlog](https://www.structlog.org/) | Structured logging |
 | [pydantic](https://docs.pydantic.dev/) | Data validation (frozen models) |
-| [pre-commit](https://pre-commit.com/) | Git hooks (ruff, debug-statements, detect-private-key) |
+| [bandit](https://bandit.readthedocs.io/) | Security scanning (AI-code antipatterns: secrets, eval, pickle, SQL injection) |
+| [pre-commit](https://pre-commit.com/) | Git hooks (ruff, bandit, debug-statements, detect-private-key) |
 | [tox-uv](https://github.com/tox-dev/tox-uv) | Multi-version testing (Python 3.10-3.14) |
 | [MkDocs](https://www.mkdocs.org/) | Documentation with Material theme (optional) |
 
@@ -45,7 +46,7 @@ uvx cookiecutter https://github.com/jdiez/cookie-claude.git \
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Full Python dev guidance — AI behavior guidelines, uv conventions, toolchain, code style, structlog, Google docstrings, anti-patterns |
-| `.claude/settings.json` | Auto-allow uv/make/git commands, deny pip/conda, auto-format on file write |
+| `.claude/settings.json` | Auto-allow uv/make/git/bandit commands, deny pip/conda, auto-format + security scan on file write |
 | `.claude/commands/check` | Run full quality suite and fix issues |
 | `.claude/commands/test` | Run tests with verbose output |
 | `.claude/commands/implement` | Spec-driven TDD — decompose, write tests first, implement, verify |
@@ -103,8 +104,9 @@ The post-generation hook automatically runs `git init`, `uv sync`, and `pre-comm
 
 ```bash
 cd your-project
-make check    # verify everything passes
-make test     # run tests
+make check      # verify everything passes
+make security   # run bandit security scan
+make test       # run tests
 ```
 
 ## License
