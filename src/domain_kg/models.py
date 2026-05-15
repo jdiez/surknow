@@ -158,3 +158,54 @@ class ToolRegistry(BaseModel):
     generic: list[ToolDefinition]
     field_specific: dict[str, list[ToolDefinition]]
     mcp_servers: list[ToolDefinition] = []
+
+
+# --- Research Team output models ---
+
+
+class RootEntity(BaseModel):
+    name: str
+    entity_type: str
+    description: str
+    why_root: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    source_urls: list[str] = []
+    aliases: list[str] = []
+
+
+class FieldBranch(BaseModel):
+    name: str
+    description: str
+    key_entities: list[str] = []
+    depth_priority: int = 1
+
+
+class ExpansionQuery(BaseModel):
+    query: str
+    source_type: str
+    branch: str
+    expected_entity_types: list[str] = []
+    rationale: str
+
+
+class ResearchBrief(BaseModel):
+    domain: str
+    understanding: str
+    root_entities: list[RootEntity] = []
+    field_map: list[FieldBranch] = []
+    expansion_plan: list[ExpansionQuery] = []
+    sources_consulted: list[str] = []
+    confidence: float = Field(ge=0.0, le=1.0, default=0.0)
+    iterations_used: int = 0
+
+
+# --- Graph Team output models ---
+
+
+class GraphResult(BaseModel):
+    entities: list[Entity] = []
+    relationships: list[Relationship] = []
+    merges_performed: int = 0
+    entities_rejected: int = 0
+    coverage: CoverageMetrics
+    gaps: list[str] = []

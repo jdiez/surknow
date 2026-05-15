@@ -17,6 +17,38 @@ class DomainConfig(BaseModel):
     examples: dict = {}
     agent_config: dict = {}
 
+    def get_entity_types(self) -> list[str]:
+        """Extract unique entity types from examples."""
+        types = set()
+        for entity in self.examples.get("entities", []):
+            t = entity.get("type", "")
+            if t:
+                types.add(t)
+        return sorted(types)
+
+    def get_relation_types(self) -> list[str]:
+        """Extract unique relation types from examples."""
+        rels = set()
+        for rel in self.examples.get("relationships", []):
+            r = rel.get("relation", "")
+            if r:
+                rels.add(r)
+        return sorted(rels)
+
+    def get_extraction_instructions(self) -> list[str]:
+        """Get extraction-specific instructions from agent_config."""
+        return self.agent_config.get("entity_extractor", {}).get("extra_instructions", [])
+
+    def get_source_preferences(self) -> dict[str, list[dict]]:
+        """Get field-specific tool preferences grouped by domain."""
+        prefs: dict[str, list[dict]] = {}
+        field_tools = self.tools.get("field_specific", [])
+        if isinstance(field_tools, list):
+            for tool in field_tools:
+                for domain in tool.get("domains", []):
+                    prefs.setdefault(domain, []).append(tool)
+        return prefs
+
 
 def load_domain_config(config_path: Path) -> DomainConfig:
     with open(config_path) as f:

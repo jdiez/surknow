@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Agno
     agno_storage_url: str = "postgresql://localhost:5432/domain_kg"
 
+    # Agent models
+    researcher_model_id: str = "us.anthropic.claude-opus-4-20250514-v1:0"
+    worker_model_id: str = "us.anthropic.claude-sonnet-4-6-20250514-v1:0"
+
     # Pipeline
     max_iterations: int = 3
     coverage_threshold: float = 0.8
@@ -32,8 +36,23 @@ class Settings(BaseSettings):
     max_entities_per_branch: int = 50
     parallel_branches: int = 5
 
-    # Default search
+    # Team settings
+    research_team_max_iterations: int = 15
+    extraction_team_max_iterations: int = 20
+    graph_team_max_iterations: int = 10
+    max_tool_calls_per_agent: int = 30
+
+    # Search providers
     search_provider: str = "tavily"
     search_api_key: str = ""
+    exa_api_key: str = ""
+    semantic_scholar_key: str = ""
+    opencorporates_token: str = ""
+    github_token: str = ""
+
+    # Search execution
+    search_max_results_per_query: int = 10
+    search_rate_limit_per_second: float = 2.0
+    search_concurrent_queries: int = 3
 
     model_config = {"env_file": ".env", "env_prefix": "DKG_", "populate_by_name": True}

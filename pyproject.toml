@@ -19,6 +19,8 @@ dependencies = [
     "rich>=13.0",
     "structlog>=24.4.0",
     "aioboto3>=15.5.0",
+    "tavily-python>=0.3",
+    "fastmcp>=2.0",
 ]
 
 [project.urls]
@@ -26,6 +28,7 @@ Repository = "https://github.com/jdiez/surknow"
 
 [project.scripts]
 domain-kg = "domain_kg.cli:app"
+domain-kg-mcp = "domain_kg.mcp.server:run"
 
 [dependency-groups]
 dev = [
@@ -33,9 +36,6 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.4",
     "mypy>=1.10",
-]
-search = [
-    "tavily-python>=0.3",
 ]
 
 [build-system]

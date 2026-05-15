@@ -24,6 +24,7 @@ def run(
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse input and show plan without executing"),
 ) -> None:
     """Characterize a domain and build its knowledge graph."""
+    from domain_kg.domain_config import load_domain_config
     from domain_kg.flows.main import characterize_domain
     from domain_kg.parsers import parse_input
 
@@ -39,8 +40,20 @@ def run(
         console.print(f"[bold]Coverage target:[/bold] {coverage}")
         return
 
+    domain_config = None
+    if config_file and config_file.exists():
+        domain_config = load_domain_config(config_file)
+
     console.print(f"[bold green]Starting domain characterization:[/bold green] {input_file}")
-    result = asyncio.run(characterize_domain(input_file, settings))
+    result = asyncio.run(
+        characterize_domain(
+            input_file,
+            settings=settings,
+            domain_config=domain_config,
+            config_path=config_file,
+            dry_run=dry_run,
+        )
+    )
 
     table = Table(title="Pipeline Results")
     table.add_column("Metric", style="bold")
@@ -94,7 +107,6 @@ def export(
     import json as json_lib
 
     from domain_kg.db.client import get_client
-    from domain_kg.db.queries import QueryHelper
 
     async def _export() -> str:
         settings = Settings()
@@ -127,141 +139,53 @@ def export(
 
 @app.command()
 def characterize(
-    input_file: Path = typer.Argument(..., help="Domain input file (YAML/CSV/text)"),
-    config_file: Path | None = typer.Option(None, "--config", "-c", help="Domain config file"),
-    output_dir: Path = typer.Option(Path("output"), "--output", "-o", help="Output directory for text results"),
-    max_iterations: int = typer.Option(3, "--max-iterations", "-n", help="Maximum iteration rounds"),
+    config_file: Path = typer.Argument(..., help="Domain config file (YAML)"),
+    output_dir: Path = typer.Option(Path("output"), "--output", "-o", help="Output directory"),
+    max_iterations: int = typer.Option(3, "--max-iterations", "-n", help="Maximum pipeline iterations"),
     coverage: float = typer.Option(0.8, "--coverage", help="Target coverage threshold"),
-    resume: bool = typer.Option(True, "--resume/--fresh", help="Resume from last completed stage (default: resume)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Run research team only, don't execute searches"),
 ) -> None:
-    """Run pipeline and output results to text files in a directory.
+    """Run the agentic team pipeline: Research → Extraction → Graph.
 
-    Saves intermediate JSON after each stage. On re-run (--resume), skips
-    stages whose output already exists in the output directory.
+    Uses Agno Teams with specialized agents at each stage.
+    Output is saved as YAML/JSON in the output directory.
     """
-    import json as json_lib
-
-    from domain_kg.flows.discover import discover_branches
-    from domain_kg.flows.search import plan_searches
-    from domain_kg.flows.understand import understand_domain
-    from domain_kg.flows.vocabulary import gather_vocabulary
-    from domain_kg.models import BranchTree, DomainContext, SearchPlan, VocabularyIndex
-    from domain_kg.parsers import parse_input
+    from domain_kg.domain_config import load_domain_config
+    from domain_kg.flows.main import characterize_domain
 
     settings = Settings(max_iterations=max_iterations, coverage_threshold=coverage)
-    output_dir.mkdir(parents=True, exist_ok=True)
 
-    state_dir = output_dir / ".state"
-    state_dir.mkdir(exist_ok=True)
+    if not config_file.exists():
+        console.print(f"[red]Config file not found: {config_file}[/red]")
+        raise typer.Exit(1)
 
-    def _load_state(stage: str):
-        path = state_dir / f"{stage}.json"
-        if resume and path.exists():
-            return json_lib.loads(path.read_text())
-        return None
+    domain_config = load_domain_config(config_file)
+    console.print(f"[bold green]Starting agentic pipeline:[/bold green] {domain_config.domain}")
+    console.print("  Teams: Research → Extraction → Graph")
+    console.print(f"  Max iterations: {max_iterations}, Coverage target: {coverage}")
+    if dry_run:
+        console.print("  [yellow]DRY RUN: research only, no search execution[/yellow]")
 
-    def _save_state(stage: str, data):
-        path = state_dir / f"{stage}.json"
-        path.write_text(json_lib.dumps(data, indent=2, default=str))
-
-    async def _run():
-        domain_input = await parse_input(input_file)
-
-        # Stage 1: Understand
-        cached = _load_state("understand")
-        if cached:
-            context = DomainContext(**cached)
-            console.print("[dim]Stage 1 (understand): resumed from cache[/dim]")
-        else:
-            context = await understand_domain(domain_input)
-            _save_state("understand", context.model_dump())
-            console.print("[green]Stage 1 (understand): completed[/green]")
-
-        # Stage 2: Discover branches
-        cached = _load_state("branches")
-        if cached:
-            branches = BranchTree(**cached)
-            console.print("[dim]Stage 2 (branches): resumed from cache[/dim]")
-        else:
-            branches = await discover_branches(context, 0)
-            _save_state("branches", branches.model_dump())
-            console.print("[green]Stage 2 (branches): completed[/green]")
-
-        # Stage 3: Vocabulary
-        cached = _load_state("vocabulary")
-        if cached:
-            vocab = VocabularyIndex(**cached)
-            console.print("[dim]Stage 3 (vocabulary): resumed from cache[/dim]")
-        else:
-            vocab = await gather_vocabulary(branches, settings)
-            _save_state("vocabulary", vocab.model_dump())
-            console.print("[green]Stage 3 (vocabulary): completed[/green]")
-
-        # Stage 4: Search plan
-        cached = _load_state("search_plan")
-        if cached:
-            search_plan = SearchPlan(**cached)
-            console.print("[dim]Stage 4 (search plan): resumed from cache[/dim]")
-        else:
-            search_plan = await plan_searches(branches, vocab, settings)
-            _save_state("search_plan", search_plan.model_dump())
-            console.print("[green]Stage 4 (search plan): completed[/green]")
-
-        return context, branches, vocab, search_plan
-
-    console.print(f"[bold green]Running characterization:[/bold green] {input_file}")
-    if resume:
-        console.print(f"[dim]Resume mode: checking {state_dir} for cached stages[/dim]")
-    context, branches, vocab, search_plan = asyncio.run(_run())
-
-    domain_slug = context.domain.lower().replace(" ", "_")
-
-    # Write human-readable text output
-    (output_dir / f"{domain_slug}_understanding.txt").write_text(
-        f"Domain: {context.domain}\n"
-        f"Description: {context.description}\n\n"
-        f"Entity Types:\n" + "\n".join(f"  - {t}" for t in context.initial_entity_types) + "\n\n"
-        f"Relation Types:\n" + "\n".join(f"  - {r}" for r in context.initial_relation_types) + "\n\n"
-        f"Boundaries:\n" + "\n".join(f"  {b}" for b in context.boundaries) + "\n\n"
-        f"Adjacent Fields:\n" + "\n".join(f"  - {f}" for f in context.adjacent_fields) + "\n"
+    result = asyncio.run(
+        characterize_domain(
+            settings=settings,
+            domain_config=domain_config,
+            config_path=config_file,
+            output_dir=output_dir,
+            dry_run=dry_run,
+        )
     )
 
-    branch_lines = []
-    for b in branches.branches:
-        indent = "  " * b.depth
-        branch_lines.append(f"  {indent}{b.name} (conf={b.confidence:.2f}) — {b.description}")
-    (output_dir / f"{domain_slug}_branches.txt").write_text(
-        f"Domain: {context.domain}\n"
-        f"Total Branches: {len(branches.branches)}\n"
-        f"Coverage: {branches.coverage_pct:.0f}%\n\n"
-        + "\n".join(branch_lines) + "\n"
-    )
-
-    vocab_lines = []
-    for t in vocab.terms:
-        aliases = f" (aka: {', '.join(t.aliases)})" if t.aliases else ""
-        vocab_lines.append(f"  [{t.branch}] {t.canonical}{aliases}")
-    (output_dir / f"{domain_slug}_vocabulary.txt").write_text(
-        f"Domain: {context.domain}\n"
-        f"Total Terms: {len(vocab.terms)}\n\n"
-        + "\n".join(vocab_lines) + "\n"
-    )
-
-    query_lines = []
-    for q in search_plan.queries:
-        query_lines.append(f"  [{q.source_type}] {q.query}")
-        query_lines.append(f"    expects: {q.expected_entity_types}")
-    (output_dir / f"{domain_slug}_search_plan.txt").write_text(
-        f"Domain: {context.domain}\n"
-        f"Total Queries: {len(search_plan.queries)}\n\n"
-        + "\n".join(query_lines) + "\n"
-    )
-
-    console.print(f"[green]Output written to {output_dir}/[/green]")
-    console.print(f"  {domain_slug}_understanding.txt")
-    console.print(f"  {domain_slug}_branches.txt")
-    console.print(f"  {domain_slug}_vocabulary.txt")
-    console.print(f"  {domain_slug}_search_plan.txt")
+    table = Table(title="Pipeline Results")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value")
+    table.add_row("Entities Created", str(result.entities_created))
+    table.add_row("Relationships Created", str(result.relationships_created))
+    table.add_row("Entities Merged", str(result.entities_merged))
+    table.add_row("Coverage", f"{result.coverage_pct:.1%}")
+    table.add_row("Branches", f"{result.branches_covered}/{result.total_branches}")
+    table.add_row("Iterations Used", str(result.iterations_used))
+    console.print(table)
 
 
 def _format_text_export(domain: str, entities: list, relations: list) -> str:
@@ -296,6 +220,49 @@ def _format_text_export(domain: str, entities: list, relations: list) -> str:
             lines.append(f"  {src_name} --[{rel_type}]--> {tgt_name}")
 
     return "\n".join(lines) + "\n"
+
+
+@app.command()
+def models(
+    validate: bool = typer.Option(False, "--validate", help="Only validate current config"),
+) -> None:
+    """Discover available Bedrock models and show recommended defaults."""
+    from domain_kg.tools.discover_models import (
+        get_available_models,
+        select_latest_per_family,
+        validate_config,
+    )
+
+    if validate:
+        console.print("[bold]Validating configured models...[/bold]")
+        ok, results = validate_config()
+        for model_id, available in results.items():
+            status = "[green]OK[/green]" if available else "[red]UNAVAILABLE[/red]"
+            console.print(f"  {status} {model_id}")
+        if not ok:
+            console.print("\n[red]Some models are not available![/red]")
+            raise typer.Exit(1)
+        console.print("\n[green]All configured models are accessible.[/green]")
+        return
+
+    console.print("[bold]Discovering available Bedrock models...[/bold]\n")
+    all_models = get_available_models()
+
+    table = Table(title="Available Models")
+    table.add_column("Model ID", style="bold")
+    table.add_column("Family")
+    table.add_column("Gen")
+    table.add_column("Status")
+    for m in all_models:
+        status = "[green]OK[/green]" if m.available else "[dim]--[/dim]"
+        table.add_row(m.model_id, m.family, str(m.generation), status)
+    console.print(table)
+
+    latest = select_latest_per_family(all_models)
+    console.print("\n[bold]Recommended defaults (latest per family):[/bold]")
+    console.print(f"  Researcher: {latest.get('opus', 'N/A')}")
+    console.print(f"  Worker:     {latest.get('sonnet', 'N/A')}")
+    console.print(f"  Haiku:      {latest.get('haiku', 'N/A')}")
 
 
 if __name__ == "__main__":
