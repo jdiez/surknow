@@ -1,0 +1,12 @@
+domain: "Test Domain"
+description: "A simple test domain for unit testing"
+entities:
+  - name: "Entity A"
+    type: "concept"
+    description: "First test entity"
+  - name: "Entity B"
+    type: "method"
+links:
+  - source: "Entity A"
+    target: "Entity B"
+    relation: "relates_to"

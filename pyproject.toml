@@ -1,0 +1,67 @@
+[project]
+name = "surknow"
+version = "0.1.0"
+description = "Agentic Domain Characterization Pipeline — autonomous knowledge graph construction"
+authors = [{ name = "Javier Díez Pérez", email = "javier@example.com" }]
+readme = "README.md"
+keywords = ["knowledge-graph", "agentic", "domain-characterization", "surrealdb", "prefect"]
+requires-python = ">=3.11"
+dependencies = [
+    "prefect>=3.0",
+    "agno[aws,mcp]>=1.0",
+    "surrealdb>=0.3",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "typer>=0.12",
+    "boto3>=1.34",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "rich>=13.0",
+    "structlog>=24.4.0",
+    "aioboto3>=15.5.0",
+]
+
+[project.urls]
+Repository = "https://github.com/jdiez/surknow"
+
+[project.scripts]
+domain-kg = "domain_kg.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+search = [
+    "tavily-python>=0.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/domain_kg"]
+
+[tool.mypy]
+files = ["src"]
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+fix = true
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "N", "UP", "S", "B", "A", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]

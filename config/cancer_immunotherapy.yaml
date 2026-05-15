@@ -1,0 +1,93 @@
+domain: "Cancer Immunotherapy"
+description: "The field of using the immune system to fight cancer"
+
+references:
+  foundational:
+    - url: "https://www.cancer.gov/about-cancer/treatment/types/immunotherapy"
+      title: "NCI Immunotherapy Overview"
+      type: "overview"
+      notes: "Authoritative taxonomy of immunotherapy approaches"
+    - url: "https://www.nature.com/articles/s41573-023-00786-5"
+      title: "Cancer immunotherapy review 2024"
+      type: "review_paper"
+      notes: "Comprehensive landscape of approved and pipeline therapies"
+
+  terminology:
+    - url: "https://www.cancer.gov/publications/dictionaries/cancer-terms"
+      title: "NCI Cancer Terms Dictionary"
+      type: "glossary"
+
+  prior_art:
+    - url: "https://clinicaltrials.gov/search?term=immunotherapy&cond=cancer"
+      title: "ClinicalTrials.gov — immunotherapy trials"
+      type: "database"
+      notes: "Use for entity discovery: drugs, targets, sponsors"
+
+tools:
+  generic:
+    - name: "web_search"
+      type: "web_search"
+      provider: "tavily"
+      priority: 1
+
+  field_specific:
+    - name: "pubmed"
+      type: "api"
+      uri: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+      domains: ["biomedical", "immunotherapy", "oncology"]
+      priority: 10
+      rate_limit: 3
+    - name: "clinical_trials"
+      type: "api"
+      uri: "https://clinicaltrials.gov/api/v2/"
+      domains: ["clinical", "drugs", "trials"]
+      priority: 8
+    - name: "semantic_scholar"
+      type: "api"
+      uri: "https://api.semanticscholar.org/graph/v1/"
+      api_key_env: "S2_API_KEY"
+      domains: ["academic", "papers"]
+      priority: 7
+
+  mcp_servers: []
+
+examples:
+  entities:
+    - name: "Pembrolizumab"
+      type: "drug"
+      description: "Anti-PD-1 monoclonal antibody (Keytruda)"
+      branch: "Checkpoint Inhibitors"
+    - name: "Memorial Sloan Kettering"
+      type: "organization"
+      description: "Leading cancer research center"
+      branch: "Research Institutions"
+
+  relationships:
+    - source: "Pembrolizumab"
+      target: "PD-1"
+      relation: "targets"
+    - source: "Merck"
+      target: "Pembrolizumab"
+      relation: "manufactures"
+
+  branches:
+    - name: "Checkpoint Inhibitors"
+      depth: 1
+      parent: "Cancer Immunotherapy"
+    - name: "Anti-PD-1/PD-L1"
+      depth: 2
+      parent: "Checkpoint Inhibitors"
+    - name: "CAR-T Cell Therapy"
+      depth: 1
+      parent: "Cancer Immunotherapy"
+
+agent_config:
+  domain_analyst:
+    extra_instructions:
+      - "This is a rapidly evolving biomedical field — prioritize recent sources (2022+)"
+      - "Distinguish between approved therapies and pipeline candidates"
+  entity_extractor:
+    confidence_threshold: 0.75
+    extra_instructions:
+      - "Always include mechanism of action for drug entities"
+      - "Flag entities with conflicting information for human review"

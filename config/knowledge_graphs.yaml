@@ -1,0 +1,82 @@
+domain: "Knowledge Graphs"
+description: "Representing, constructing, and querying structured knowledge as graphs"
+
+references:
+  foundational:
+    - url: "https://arxiv.org/abs/2003.02320"
+      title: "A Survey on Knowledge Graphs"
+      type: "review_paper"
+      notes: "Comprehensive survey covering KG construction, embedding, and applications"
+    - url: "https://www.w3.org/TR/rdf11-concepts/"
+      title: "RDF 1.1 Concepts and Abstract Syntax"
+      type: "standard"
+      notes: "W3C standard for semantic web data model"
+
+  terminology:
+    - url: "https://www.w3.org/TR/owl2-overview/"
+      title: "OWL 2 Web Ontology Language"
+      type: "standard"
+
+tools:
+  generic:
+    - name: "web_search"
+      type: "web_search"
+      provider: "tavily"
+      priority: 1
+
+  field_specific:
+    - name: "arxiv"
+      type: "api"
+      uri: "https://export.arxiv.org/api/query"
+      domains: ["ML", "knowledge representation", "graph neural networks"]
+      priority: 9
+    - name: "semantic_scholar"
+      type: "api"
+      uri: "https://api.semanticscholar.org/graph/v1/"
+      api_key_env: "S2_API_KEY"
+      domains: ["academic", "papers"]
+      priority: 7
+    - name: "github_search"
+      type: "api"
+      uri: "https://api.github.com/search"
+      api_key_env: "GITHUB_TOKEN"
+      domains: ["code", "libraries", "frameworks"]
+      priority: 6
+
+  mcp_servers: []
+
+examples:
+  entities:
+    - name: "TransE"
+      type: "method"
+      description: "Knowledge graph embedding via translation"
+      branch: "Graph Embeddings"
+    - name: "Wikidata"
+      type: "tool"
+      description: "Free collaborative knowledge base"
+      branch: "Public Knowledge Graphs"
+
+  relationships:
+    - source: "TransE"
+      target: "Knowledge Graph Embedding"
+      relation: "implements"
+    - source: "SPARQL"
+      target: "RDF"
+      relation: "queries"
+
+  branches:
+    - name: "Graph Databases"
+      depth: 1
+      parent: "Knowledge Graphs"
+    - name: "Graph Embeddings"
+      depth: 1
+      parent: "Knowledge Graphs"
+    - name: "Ontology Engineering"
+      depth: 1
+      parent: "Knowledge Graphs"
+
+agent_config:
+  domain_analyst:
+    extra_instructions:
+      - "Distinguish between symbolic KG approaches and neural/embedding approaches"
+      - "Include both academic and industry knowledge graph systems"
