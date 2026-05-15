@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ai_gateway_url: str = Field(default="", alias="AI_GATEWAY_URL")
 
     # SurrealDB
-    surreal_url: str = "ws://localhost:8000/rpc"
+    surreal_url: str = "ws://localhost:8787/rpc"
     surreal_namespace: str = "domain_kg"
     surreal_database: str = "default"
     surreal_user: str = "root"

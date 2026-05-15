@@ -81,10 +81,18 @@ DEFINE INDEX log_hash ON processing_log FIELDS input_hash, stage;
 """
 
 
-async def apply_schema(client) -> None:
+async def apply_schema(client, force: bool = False) -> None:
     """Apply the full schema DDL to SurrealDB."""
     import structlog
     logger = structlog.get_logger("domain_kg.db.schema")
+
+    if not force:
+        try:
+            await client.query("INFO FOR TABLE entity;")
+            logger.info("schema.already_exists")
+            return
+        except Exception:
+            pass
 
     statements = [s.strip() for s in SCHEMA_DDL.strip().split(";") if s.strip() and not s.strip().startswith("--")]
     for stmt in statements:

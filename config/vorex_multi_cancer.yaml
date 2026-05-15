@@ -1,0 +1,180 @@
+domain: "Multi-Cancer Early Detection"
+description: "Landscape of companies, technologies, and clinical programs pursuing early-stage cancer detection across multiple cancer types simultaneously (MCED)"
+
+references:
+  foundational:
+    - url: "https://www.nature.com/articles/s41586-023-06542-6"
+      title: "Multi-cancer early detection via cfDNA methylation"
+      type: "review_paper"
+      notes: "Grail/Galleri foundational science — cfDNA methylation-based MCED"
+    - url: "https://www.cancer.gov/research/annual-plan/scientific-topics/early-detection"
+      title: "NCI Early Detection Research"
+      type: "overview"
+      notes: "Federal research priorities for early cancer detection"
+
+  terminology:
+    - url: "https://www.cancer.gov/publications/dictionaries/cancer-terms"
+      title: "NCI Cancer Terms Dictionary"
+      type: "glossary"
+
+  prior_art:
+    - url: "https://clinicaltrials.gov/search?term=multi-cancer+early+detection"
+      title: "ClinicalTrials.gov — MCED trials"
+      type: "database"
+      notes: "Active MCED clinical programs — sponsors, endpoints, populations"
+    - url: "https://patents.google.com/?q=multi-cancer+early+detection+liquid+biopsy"
+      title: "Google Patents — MCED liquid biopsy"
+      type: "database"
+      notes: "Patent landscape for MCED technologies"
+
+tools:
+  generic:
+    - name: "web_search"
+      type: "web_search"
+      provider: "tavily"
+      priority: 1
+
+  field_specific:
+    - name: "pubmed"
+      type: "api"
+      uri: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+      domains: ["biomedical", "oncology", "diagnostics", "publications"]
+      priority: 10
+      rate_limit: 3
+    - name: "clinical_trials"
+      type: "api"
+      uri: "https://clinicaltrials.gov/api/v2/"
+      domains: ["clinical", "trials", "drugs", "diagnostics"]
+      priority: 9
+    - name: "semantic_scholar"
+      type: "api"
+      uri: "https://api.semanticscholar.org/graph/v1/"
+      api_key_env: "S2_API_KEY"
+      domains: ["academic", "papers", "kol"]
+      priority: 7
+
+  mcp_servers: []
+
+examples:
+  entities:
+    - name: "GRAIL (Illumina)"
+      type: "organization"
+      description: "Developer of Galleri multi-cancer early detection blood test"
+      branch: "MCED Companies"
+    - name: "Exact Sciences"
+      type: "organization"
+      description: "Developer of Cologuard and multi-cancer screening technologies"
+      branch: "MCED Companies"
+    - name: "Freenome"
+      type: "organization"
+      description: "AI-based multiomics platform for early cancer detection"
+      branch: "MCED Companies"
+    - name: "Galleri"
+      type: "product"
+      description: "cfDNA methylation-based MCED test detecting 50+ cancer types"
+      branch: "MCED Products"
+    - name: "CancerSEEK"
+      type: "product"
+      description: "Multi-analyte blood test for early cancer detection (Thrive/Exact Sciences)"
+      branch: "MCED Products"
+    - name: "cfDNA Methylation Analysis"
+      type: "technology"
+      description: "Cell-free DNA methylation pattern detection for cancer signal identification"
+      branch: "Detection Technologies"
+    - name: "Liquid Biopsy"
+      type: "technology"
+      description: "Blood-based non-invasive sampling for cancer biomarker detection"
+      branch: "Detection Technologies"
+    - name: "Pancreatic Cancer"
+      type: "disease"
+      description: "High-mortality cancer with poor early detection — key MCED target"
+      branch: "Target Cancers"
+    - name: "Lung Cancer"
+      type: "disease"
+      description: "Leading cancer mortality — major early detection opportunity"
+      branch: "Target Cancers"
+    - name: "PATHFINDER"
+      type: "custom"
+      description: "Prospective MCED clinical trial evaluating Galleri (NCT04241796)"
+      branch: "Clinical Trials"
+    - name: "Eric Klein"
+      type: "person"
+      description: "Key opinion leader in MCED, led CCGA and PATHFINDER studies"
+      branch: "KOLs"
+    - name: "ASCO Annual Meeting"
+      type: "custom"
+      description: "Major oncology conference where MCED data is presented"
+      branch: "Conferences"
+
+  relationships:
+    - source: "GRAIL (Illumina)"
+      target: "Galleri"
+      relation: "develops"
+    - source: "Galleri"
+      target: "cfDNA Methylation Analysis"
+      relation: "uses_technology"
+    - source: "Galleri"
+      target: "PATHFINDER"
+      relation: "evaluated_in"
+    - source: "Eric Klein"
+      target: "PATHFINDER"
+      relation: "leads"
+    - source: "Exact Sciences"
+      target: "CancerSEEK"
+      relation: "develops"
+    - source: "Freenome"
+      target: "Liquid Biopsy"
+      relation: "uses_technology"
+
+  branches:
+    - name: "MCED Companies"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "MCED Products"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Detection Technologies"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Target Cancers"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Clinical Trials"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "KOLs"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Publications"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Conferences"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "Patents"
+      depth: 1
+      parent: "Multi-Cancer Early Detection"
+    - name: "cfDNA-Based"
+      depth: 2
+      parent: "Detection Technologies"
+    - name: "Proteomics-Based"
+      depth: 2
+      parent: "Detection Technologies"
+    - name: "Multi-Omics"
+      depth: 2
+      parent: "Detection Technologies"
+
+agent_config:
+  domain_analyst:
+    extra_instructions:
+      - "Focus on companies with active MCED programs — not single-cancer diagnostics"
+      - "Distinguish between commercially launched tests and pipeline/clinical-stage"
+      - "Capture regulatory status (FDA breakthrough, CE-IVD, etc.) as entity metadata"
+  entity_extractor:
+    confidence_threshold: 0.7
+    extra_instructions:
+      - "For companies: capture stage (public/private), funding, key partnerships"
+      - "For clinical trials: capture NCT number, phase, enrollment, primary endpoint"
+      - "For KOLs: capture institution, H-index, role (PI, advisor, founder)"
+      - "For patents: capture assignee, filing date, claims summary"
+      - "For conferences: capture frequency, typical MCED presentations, key sessions"
