@@ -27,20 +27,29 @@ uv sync
 # Configure
 cp .env.example .env  # Fill in credentials
 
-# Run a domain characterization
-uv run domain-kg run examples/input_cancer_immunotherapy.yaml
+# Run a domain characterization (full pipeline with SurrealDB)
+uv run domain-kg run examples/input_vorex_multi_cancer.yaml -c config/vorex_multi_cancer.yaml
+
+# Run characterization with text output (no DB required, supports resume)
+uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
+
+# Resume a previous run (skips completed stages automatically)
+uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
+
+# Force fresh run (ignores cached stages)
+uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex --fresh
 
 # Check pipeline status
-uv run domain-kg status "Cancer Immunotherapy"
+uv run domain-kg status "Multi-Cancer Early Detection"
 
 # Export the knowledge graph
-uv run domain-kg export "Cancer Immunotherapy" --format json
+uv run domain-kg export "Multi-Cancer Early Detection" --format text -o export.txt
 ```
 
 ### Prerequisites
 
 - Python 3.11+
-- SurrealDB running locally (or remote URL configured)
+- SurrealDB running locally (or remote URL configured) — only needed for `run`/`status`/`export`
 - AWS Bedrock access (direct or via AI Gateway)
 - Prefect server (optional, for flow tracking)
 
@@ -85,6 +94,15 @@ Stages 2-5 iterate until coverage threshold (default 80%) or max iterations reac
 | Plain text | `.txt` | Quick domain descriptions |
 
 See `examples/` for samples of each format.
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `run` | Full pipeline: parse → agents → SurrealDB write |
+| `characterize` | Stages 1-4 with text file output and resume support |
+| `status` | Show graph entity/relationship counts and branch coverage |
+| `export` | Export graph as JSON, CSV, or human-readable text |
 
 ## Configuration
 

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-05-15
+
+### Added
+
+- Vorex multi-cancer early detection (MCED) domain configuration and input
+- `domain-kg characterize` CLI command — runs stages 1-4 and outputs text files
+- Disk-based resume: intermediate stage results cached in `.state/` directory
+- `--fresh` flag to force re-execution of all stages
+- Text export format for `domain-kg export`
+- SurrealDB schema auto-detection (skip apply if tables exist)
+
+### Changed
+
+- SurrealDB client migrated to `AsyncSurreal` (proper async/await throughout)
+- Default SurrealDB port changed to 8787
+- Schema apply is now idempotent (checks for existing tables before applying)
+
+### Fixed
+
+- SurrealDB client connection error (`BlockingWsSurrealConnection` had no async `connect`)
+- Query helper properly uses `await` with async client
+- `export` command uses async client correctly
+
 ## [0.1.0] - 2026-05-15
 
 ### Added
