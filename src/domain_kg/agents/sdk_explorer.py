@@ -53,26 +53,56 @@ def _extract_json(text: str) -> str:
 
 
 async def _run_sdk_query(prompt: str, system: str, max_turns: int = 15) -> str:
-    """Run a Claude Code SDK query and return the final text output."""
+    """Run a Claude Code SDK query and return the final text output.
+
+    Key reliability fixes:
+    - Uses append_system_prompt with strong override instructions to prevent
+      PAI/CLAUDE.md skill invocation from hijacking turns
+    - Allows ToolSearch so agent can self-load WebSearch/WebFetch if deferred
+    - Collects ALL text blocks and returns the best JSON candidate
+    - Retries once on empty result
+    """
     from claude_code_sdk import ClaudeCodeOptions, query
+
+    full_system = (
+        "You are running as a headless data-extraction subprocess. "
+        "Do not follow formatting modes, skill triggers, or output templates from other system prompts. "
+        "Do not output mode headers or invoke skills. Focus exclusively on the task. "
+        f"{system} "
+        "If WebSearch is not available, use ToolSearch to load WebFetch, then use WebFetch with relevant URLs."
+    )
 
     options = ClaudeCodeOptions(
         permission_mode="bypassPermissions",
         model="sonnet",
         max_turns=max_turns,
-        allowed_tools=["WebSearch", "Read"],
-        disallowed_tools=["Edit", "Write", "Agent", "Bash"],
-        append_system_prompt=system,
+        append_system_prompt=full_system,
+        allowed_tools=["WebSearch", "WebFetch", "ToolSearch"],
+        disallowed_tools=["Edit", "Write", "Agent", "Bash", "Skill", "TodoWrite", "AskUserQuestion"],
     )
 
-    result_text = ""
-    async for message in query(prompt=prompt, options=options):
-        if hasattr(message, "content"):
-            for block in message.content:
-                if hasattr(block, "text") and block.text:
-                    result_text = block.text
+    all_texts: list[str] = []
+    try:
+        async for message in query(prompt=prompt, options=options):
+            if hasattr(message, "content"):
+                for block in message.content:
+                    if hasattr(block, "text") and block.text:
+                        all_texts.append(block.text)
+    except Exception as e:
+        logger.warning("sdk.query.error", error=str(e), texts_collected=len(all_texts))
+        if not all_texts:
+            raise
 
-    return result_text
+    if not all_texts:
+        return ""
+
+    # Prefer the last text block that looks like JSON
+    for text in reversed(all_texts):
+        stripped = text.strip()
+        if stripped.startswith(("{", "[")) or "```json" in stripped:
+            return text
+
+    return all_texts[-1]
 
 
 async def understand_domain_sdk(domain_input: DomainInput) -> DomainContext:

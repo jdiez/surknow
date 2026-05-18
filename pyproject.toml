@@ -1,6 +1,6 @@
 [project]
 name = "surknow"
-version = "0.6.0"
+version = "0.6.1"
 description = "Agentic Domain Characterization Pipeline — autonomous knowledge graph construction"
 authors = [{ name = "Javier Díez Pérez", email = "javier@example.com" }]
 readme = "README.md"

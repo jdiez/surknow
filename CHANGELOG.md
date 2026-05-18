@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-05-18
+
+### Fixed
+
+- SDK agents no longer fail due to PAI/CLAUDE.md skill interference in subprocess
+- Root cause: SDK subprocess loaded global CLAUDE.md, triggering PAI ALGORITHM mode and
+  skill invocations that burned agent turns and prevented JSON output
+- Fix: headless subprocess preamble in append_system_prompt that disables mode/skill triggers
+- Added ToolSearch to allowed tools so agent can self-load WebFetch when WebSearch unavailable
+- Improved text block collection: scans all blocks for JSON instead of keeping only last one
+- Graceful error handling when SDK subprocess crashes mid-stream (preserves partial results)
+- Result: 0 failed batches in vocabulary (was 4/6), all stages succeed consistently
+
 ## [0.6.0] - 2026-05-18
 
 ### Changed
