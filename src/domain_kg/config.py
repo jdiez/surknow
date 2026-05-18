@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     opencorporates_token: str = ""
     github_token: str = ""
 
+    # Claude Code SDK
+    use_sdk: bool = False
+
     # Search execution
     search_max_results_per_query: int = 10
     search_rate_limit_per_second: float = 2.0

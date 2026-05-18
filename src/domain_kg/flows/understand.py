@@ -11,11 +11,32 @@ logger = structlog.get_logger("domain_kg.flows.understand")
 
 
 @task(name="understand-domain")
-async def understand_domain(domain_input: DomainInput) -> DomainContext:
+async def understand_domain(domain_input: DomainInput, use_sdk: bool = False) -> DomainContext:
     """Stage 1: Analyze domain and establish scope, boundaries, initial schema."""
+    if use_sdk:
+        return await _understand_sdk(domain_input)
+    return await _understand_agno(domain_input)
+
+
+async def _understand_sdk(domain_input: DomainInput) -> DomainContext:
+    """Stage 1 via Claude Code SDK — grounded with real web search."""
+    from domain_kg.agents.sdk_explorer import understand_domain_sdk
+
+    logger.info("stage1.started", domain=domain_input.domain, backend="sdk")
+    try:
+        context = await understand_domain_sdk(domain_input)
+        logger.info("stage1.completed", domain=domain_input.domain, backend="sdk")
+        return context
+    except Exception as e:
+        logger.warning("stage1.sdk_failed", error=str(e), fallback="agno")
+        return await _understand_agno(domain_input)
+
+
+async def _understand_agno(domain_input: DomainInput) -> DomainContext:
+    """Stage 1 via Agno agent — structured output, no tools."""
     from domain_kg.agents.definitions import domain_analyst
 
-    logger.info("stage1.started", domain=domain_input.domain)
+    logger.info("stage1.started", domain=domain_input.domain, backend="agno")
 
     prompt = (
         f"Analyze the following domain and produce a comprehensive context.\n\n"
@@ -29,7 +50,7 @@ async def understand_domain(domain_input: DomainInput) -> DomainContext:
 
     response = await domain_analyst.arun(prompt)
     if response and response.content:
-        logger.info("stage1.completed", domain=domain_input.domain)
+        logger.info("stage1.completed", domain=domain_input.domain, backend="agno")
         return response.content
 
     return DomainContext(

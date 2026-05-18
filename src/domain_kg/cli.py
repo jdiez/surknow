@@ -188,6 +188,58 @@ def characterize(
     console.print(table)
 
 
+@app.command()
+def explore(
+    input_file: Path = typer.Argument(..., help="Domain input file (YAML)"),
+    output_dir: Path = typer.Option(Path("output"), "--output", "-o", help="Output directory"),
+    stage: int = typer.Option(1, "--stage", "-s", help="Run up to this stage (1-3)"),
+) -> None:
+    """Run SDK-powered exploration (web-grounded stages 1-3).
+
+    Uses Claude Code SDK agents with real web search for domain exploration.
+    Results are saved as JSON (resumable) and text (human-readable).
+    """
+    import json as json_lib
+
+    from domain_kg.flows.understand import understand_domain
+    from domain_kg.parsers import parse_input
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    state_dir = output_dir / ".state"
+    state_dir.mkdir(exist_ok=True)
+
+    async def _run():
+        domain_input = await parse_input(input_file)
+
+        # Stage 1: Understand (SDK)
+        cached = state_dir / "understand_sdk.json"
+        if cached.exists():
+            from domain_kg.models import DomainContext
+            context = DomainContext(**json_lib.loads(cached.read_text()))
+            console.print("[dim]Stage 1 (understand/SDK): resumed from cache[/dim]")
+        else:
+            context = await understand_domain(domain_input, use_sdk=True)
+            cached.write_text(json_lib.dumps(context.model_dump(), indent=2, default=str))
+            console.print("[green]Stage 1 (understand/SDK): completed[/green]")
+
+        # Write human-readable output
+        slug = context.domain.lower().replace(" ", "_")
+        (output_dir / f"{slug}_understanding.txt").write_text(
+            f"Domain: {context.domain}\n"
+            f"Description: {context.description}\n\n"
+            f"Entity Types:\n" + "\n".join(f"  - {t}" for t in context.initial_entity_types) + "\n\n"
+            f"Relation Types:\n" + "\n".join(f"  - {r}" for r in context.initial_relation_types) + "\n\n"
+            f"Boundaries:\n" + "\n".join(f"  {b}" for b in context.boundaries) + "\n\n"
+            f"Adjacent Fields:\n" + "\n".join(f"  - {f}" for f in context.adjacent_fields) + "\n"
+        )
+
+        return context
+
+    console.print(f"[bold green]SDK Exploration:[/bold green] {input_file}")
+    asyncio.run(_run())
+    console.print(f"[green]Output written to {output_dir}/[/green]")
+
+
 def _format_text_export(domain: str, entities: list, relations: list) -> str:
     """Format entities and relationships as readable text."""
     lines = [f"Domain: {domain}", f"Entities: {len(entities)}", f"Relationships: {len(relations)}", ""]

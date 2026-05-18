@@ -12,7 +12,7 @@ Agentic Domain Characterization Pipeline — takes structured domain description
 |-------|-----------|
 | Language | Python 3.11+ / uv |
 | Orchestration | Prefect 3.x |
-| Agents | Agno (structured output, multi-agent) |
+| Agents | Agno (structured output) + Claude Code SDK (web search) |
 | Graph DB | SurrealDB (graph + document) |
 | LLM | AWS Bedrock Claude (via AI Gateway) |
 | CLI | Typer + Rich |
@@ -32,6 +32,9 @@ uv run domain-kg run examples/input_vorex_multi_cancer.yaml -c config/vorex_mult
 
 # Run characterization with text output (no DB required, supports resume)
 uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
+
+# SDK-powered exploration with real web search (no DB required)
+uv run domain-kg explore examples/input_vorex_multi_cancer.yaml -o output/vorex_sdk
 
 # Resume a previous run (skips completed stages automatically)
 uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
@@ -101,6 +104,7 @@ See `examples/` for samples of each format.
 |---------|-------------|
 | `run` | Full pipeline: parse → agents → SurrealDB write |
 | `characterize` | Stages 1-4 with text file output and resume support |
+| `explore` | SDK-powered exploration with real web search (stages 1-3) |
 | `status` | Show graph entity/relationship counts and branch coverage |
 | `export` | Export graph as JSON, CSV, or human-readable text |
 
