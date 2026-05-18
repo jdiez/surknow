@@ -259,6 +259,36 @@ def explore(
             + "\n"
         )
 
+        if stage < 3:
+            return context
+
+        # Stage 3: Vocabulary (SDK)
+        from domain_kg.flows.vocabulary import gather_vocabulary
+        from domain_kg.models import VocabularyIndex
+
+        cached_vocab = state_dir / "vocabulary_sdk.json"
+        if cached_vocab.exists():
+            vocab = VocabularyIndex(**json_lib.loads(cached_vocab.read_text()))
+            console.print("[dim]Stage 3 (vocabulary/SDK): resumed from cache[/dim]")
+        else:
+            settings = Settings()
+            vocab = await gather_vocabulary(tree, settings, domain=context.domain, use_sdk=True)
+            cached_vocab.write_text(json_lib.dumps(vocab.model_dump(), indent=2, default=str))
+            console.print("[green]Stage 3 (vocabulary/SDK): completed[/green]")
+
+        (output_dir / f"{slug}_vocabulary.txt").write_text(
+            f"Domain: {context.domain}\n"
+            f"Terms: {len(vocab.terms)}\n"
+            f"Branch coverage: {vocab.branch_coverage}\n\n"
+            + "\n".join(
+                f"[{t.branch}] {t.canonical}\n"
+                f"  {t.definition or ''}\n"
+                f"  Aliases: {', '.join(t.aliases) if t.aliases else 'none'}"
+                for t in vocab.terms
+            )
+            + "\n"
+        )
+
         return context
 
     console.print(f"[bold green]SDK Exploration:[/bold green] {input_file}")

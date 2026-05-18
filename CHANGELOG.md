@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2026-05-18
+
+### Added
+
+- Claude Code SDK integration for Stage 3: Vocabulary Gathering (`gather_vocabulary_sdk()`)
+- `explore --stage 3` gathers domain terminology with web-grounded research
+- Batched vocabulary collection (6 branches per SDK call) for reliability
+- Partial-success resilience: failed batches are skipped, successful ones retained
+- Resume-from-cache support for Stage 3 (`.state/vocabulary_sdk.json`)
+
+### Changed
+
+- `gather_vocabulary()` now accepts `use_sdk` and `domain` parameters
+- SDK vocabulary timeout increased to 180s per batch
+
 ## [0.5.1] - 2026-05-18
 
 ### Added

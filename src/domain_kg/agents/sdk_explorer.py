@@ -199,3 +199,117 @@ You MUST output ONLY a JSON object with this exact structure (no other text):
     except (asyncio.TimeoutError, ValueError, json.JSONDecodeError, Exception) as e:
         logger.warning("sdk.stage2.failed", error=str(e), fallback="agno")
         raise
+
+
+async def gather_vocabulary_sdk(branches: BranchTree, domain: str) -> VocabularyIndex:
+    """Stage 3: Use Claude Code SDK to gather domain vocabulary with web search.
+
+    Batches branches into groups of 6 to keep each SDK query manageable.
+    """
+    logger.info("sdk.stage3.started", domain=domain, branches=len(branches.branches))
+
+    batch_size = 6
+    all_terms: list[dict] = []
+    branch_coverage: dict[str, int] = {}
+    failed_batches = 0
+
+    for i in range(0, len(branches.branches), batch_size):
+        batch = branches.branches[i : i + batch_size]
+        logger.info("sdk.stage3.batch", batch=i // batch_size + 1, branches=[b.name for b in batch])
+
+        try:
+            batch_vocab = await _gather_vocab_batch(batch, domain)
+            all_terms.extend(t.model_dump() for t in batch_vocab.terms)
+            branch_coverage.update(batch_vocab.branch_coverage)
+        except Exception as e:
+            logger.warning("sdk.stage3.batch_skipped", batch=i // batch_size + 1, error=str(e))
+            failed_batches += 1
+
+    if not all_terms:
+        raise ValueError("All vocabulary batches failed")
+
+    vocab = VocabularyIndex(
+        terms=[_parse_term(t) for t in all_terms],
+        branch_coverage=branch_coverage,
+    )
+    logger.info("sdk.stage3.completed", terms=len(vocab.terms), failed_batches=failed_batches)
+    return vocab
+
+
+def _parse_term(data: dict):
+    """Parse a term dict into a Term model."""
+    from domain_kg.models import Provenance, Term
+
+    prov_data = data.get("provenance", {})
+    prov = Provenance(
+        source=prov_data.get("source", "web_search"),
+        agent=prov_data.get("agent", "sdk_vocabulary"),
+        model=prov_data.get("model", "sonnet"),
+        confidence=prov_data.get("confidence", 0.8),
+        iteration=prov_data.get("iteration", 1),
+    )
+    return Term(
+        canonical=data["canonical"],
+        definition=data.get("definition"),
+        aliases=data.get("aliases", []),
+        branch=data.get("branch", ""),
+        provenance=prov,
+    )
+
+
+async def _gather_vocab_batch(batch: list, domain: str) -> VocabularyIndex:
+    """Gather vocabulary for a batch of branches via SDK."""
+    branch_list = "\n".join(f"  - {b.name}: {b.description}" for b in batch)
+
+    prompt = f"""Research domain-specific terminology for these branches.
+
+DOMAIN: {domain}
+
+BRANCHES:
+{branch_list}
+
+TASK:
+1. For each branch, search the web for key technical terms, acronyms, and jargon
+2. For each term, provide: canonical name, definition, aliases, and which branch it belongs to
+3. Focus on terms that distinguish this domain from adjacent fields
+4. Include acronyms (expand them), product names, methodology names, standards
+5. Aim for 5-10 terms per branch
+
+You MUST output ONLY a JSON object with this exact structure (no other text):
+{{
+  "terms": [
+    {{
+      "canonical": "term name",
+      "definition": "brief definition",
+      "aliases": ["alias1", "alias2"],
+      "branch": "branch name",
+      "provenance": {{
+        "source": "web_search",
+        "agent": "sdk_vocabulary",
+        "model": "sonnet",
+        "confidence": 0.9,
+        "iteration": 1
+      }}
+    }}
+  ],
+  "branch_coverage": {{
+    "branch name": 8
+  }}
+}}"""
+
+    system = (
+        "You are a domain terminology researcher. Use web search to verify terms are "
+        "real and in current use. Output ONLY valid JSON — no markdown fences, "
+        "no explanation, no preamble."
+    )
+
+    try:
+        async with asyncio.timeout(180):
+            result_text = await _run_sdk_query(prompt, system, max_turns=15)
+            raw_json = _extract_json(result_text)
+            data = json.loads(raw_json)
+            return VocabularyIndex(**data)
+
+    except (asyncio.TimeoutError, ValueError, json.JSONDecodeError, Exception) as e:
+        logger.warning("sdk.stage3.batch_failed", error=str(e))
+        raise
