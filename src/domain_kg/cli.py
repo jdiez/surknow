@@ -222,7 +222,6 @@ def explore(
             cached.write_text(json_lib.dumps(context.model_dump(), indent=2, default=str))
             console.print("[green]Stage 1 (understand/SDK): completed[/green]")
 
-        # Write human-readable output
         slug = context.domain.lower().replace(" ", "_")
         (output_dir / f"{slug}_understanding.txt").write_text(
             f"Domain: {context.domain}\n"
@@ -231,6 +230,33 @@ def explore(
             f"Relation Types:\n" + "\n".join(f"  - {r}" for r in context.initial_relation_types) + "\n\n"
             f"Boundaries:\n" + "\n".join(f"  {b}" for b in context.boundaries) + "\n\n"
             f"Adjacent Fields:\n" + "\n".join(f"  - {f}" for f in context.adjacent_fields) + "\n"
+        )
+
+        if stage < 2:
+            return context
+
+        # Stage 2: Discover Branches (SDK)
+        from domain_kg.flows.discover import discover_branches
+        from domain_kg.models import BranchTree
+
+        cached_branches = state_dir / "branches_sdk.json"
+        if cached_branches.exists():
+            tree = BranchTree(**json_lib.loads(cached_branches.read_text()))
+            console.print("[dim]Stage 2 (branches/SDK): resumed from cache[/dim]")
+        else:
+            tree = await discover_branches(context, iteration=1, use_sdk=True)
+            cached_branches.write_text(json_lib.dumps(tree.model_dump(), indent=2, default=str))
+            console.print("[green]Stage 2 (branches/SDK): completed[/green]")
+
+        (output_dir / f"{slug}_branches.txt").write_text(
+            f"Domain: {context.domain}\n"
+            f"Branches: {len(tree.branches)}\n\n"
+            + "\n".join(
+                f"{'  ' * b.depth}[{b.confidence:.0%}] {b.name}\n"
+                f"{'  ' * b.depth}  {b.description}"
+                for b in tree.branches
+            )
+            + "\n"
         )
 
         return context

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-05-18
+
+### Added
+
+- Claude Code SDK integration for Stage 2: Branch Discovery (`discover_branches_sdk()`)
+- `explore --stage 2` now discovers domain branches with web-grounded research
+- Branch tree output with hierarchical depth, confidence, and descriptions
+- Resume-from-cache support for Stage 2 (`.state/branches_sdk.json`)
+
+### Changed
+
+- `discover_branches()` now accepts `use_sdk` parameter for backend selection
+- `explore` command runs stages sequentially up to `--stage` value
+
 ## [0.5.0] - 2026-05-18
 
 ### Added

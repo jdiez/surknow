@@ -141,3 +141,61 @@ You MUST output ONLY a JSON object with this exact structure (no other text):
     except (asyncio.TimeoutError, ValueError, json.JSONDecodeError, Exception) as e:
         logger.warning("sdk.stage1.failed", error=str(e), fallback="agno")
         raise
+
+
+async def discover_branches_sdk(context: DomainContext) -> BranchTree:
+    """Stage 2: Use Claude Code SDK to discover domain branches with web search."""
+    logger.info("sdk.stage2.started", domain=context.domain)
+
+    prompt = f"""Research and decompose this domain into hierarchical branches (sub-fields).
+
+DOMAIN: {context.domain}
+DESCRIPTION: {context.description}
+
+BOUNDARIES:
+{chr(10).join(f"  - {b}" for b in context.boundaries)}
+
+KNOWN ENTITY TYPES: {', '.join(context.initial_entity_types)}
+KNOWN RELATION TYPES: {', '.join(context.initial_relation_types)}
+
+TASK:
+1. Search the web for how this domain is organized (sub-fields, specialties, segments)
+2. Identify 8-15 distinct branches that partition the domain
+3. For each branch, determine its parent (if hierarchical) and depth
+4. Estimate confidence in each branch's relevance
+5. Estimate coverage (how much of the domain each branch covers)
+
+You MUST output ONLY a JSON object with this exact structure (no other text):
+{{
+  "branches": [
+    {{
+      "name": "branch name",
+      "parent": null or "parent branch name",
+      "depth": 0,
+      "description": "what this branch covers",
+      "confidence": 0.9,
+      "coverage": 0.0
+    }}
+  ],
+  "coverage_pct": 0.0,
+  "iteration": 1
+}}"""
+
+    system = (
+        "You are a domain taxonomy researcher. Use web search to verify that branches "
+        "are real sub-fields, not invented. Output ONLY valid JSON — no markdown fences, "
+        "no explanation, no preamble."
+    )
+
+    try:
+        async with asyncio.timeout(120):
+            result_text = await _run_sdk_query(prompt, system, max_turns=15)
+            raw_json = _extract_json(result_text)
+            data = json.loads(raw_json)
+            tree = BranchTree(**data)
+            logger.info("sdk.stage2.completed", branches=len(tree.branches))
+            return tree
+
+    except (asyncio.TimeoutError, ValueError, json.JSONDecodeError, Exception) as e:
+        logger.warning("sdk.stage2.failed", error=str(e), fallback="agno")
+        raise
