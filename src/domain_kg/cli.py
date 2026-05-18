@@ -192,11 +192,13 @@ def characterize(
 def explore(
     input_file: Path = typer.Argument(..., help="Domain input file (YAML)"),
     output_dir: Path = typer.Option(Path("output"), "--output", "-o", help="Output directory"),
-    stage: int = typer.Option(1, "--stage", "-s", help="Run up to this stage (1-3)"),
+    stage: int = typer.Option(3, "--stage", "-s", help="Run up to this stage (1-3)"),
+    no_sdk: bool = typer.Option(False, "--no-sdk", help="Use Agno backend instead of Claude Code SDK"),
 ) -> None:
-    """Run SDK-powered exploration (web-grounded stages 1-3).
+    """Run domain exploration (web-grounded stages 1-3).
 
-    Uses Claude Code SDK agents with real web search for domain exploration.
+    By default uses Claude Code SDK agents with real web search.
+    Use --no-sdk to fall back to Agno (requires Bedrock access).
     Results are saved as JSON (resumable) and text (human-readable).
     """
     import json as json_lib
@@ -209,18 +211,20 @@ def explore(
     state_dir.mkdir(exist_ok=True)
 
     async def _run():
+        use_sdk = not no_sdk
+        backend = "SDK" if use_sdk else "Agno"
         domain_input = await parse_input(input_file)
 
-        # Stage 1: Understand (SDK)
+        # Stage 1: Understand
         cached = state_dir / "understand_sdk.json"
         if cached.exists():
             from domain_kg.models import DomainContext
             context = DomainContext(**json_lib.loads(cached.read_text()))
-            console.print("[dim]Stage 1 (understand/SDK): resumed from cache[/dim]")
+            console.print(f"[dim]Stage 1 (understand/{backend}): resumed from cache[/dim]")
         else:
-            context = await understand_domain(domain_input, use_sdk=True)
+            context = await understand_domain(domain_input, use_sdk=use_sdk)
             cached.write_text(json_lib.dumps(context.model_dump(), indent=2, default=str))
-            console.print("[green]Stage 1 (understand/SDK): completed[/green]")
+            console.print(f"[green]Stage 1 (understand/{backend}): completed[/green]")
 
         slug = context.domain.lower().replace(" ", "_")
         (output_dir / f"{slug}_understanding.txt").write_text(
@@ -242,11 +246,11 @@ def explore(
         cached_branches = state_dir / "branches_sdk.json"
         if cached_branches.exists():
             tree = BranchTree(**json_lib.loads(cached_branches.read_text()))
-            console.print("[dim]Stage 2 (branches/SDK): resumed from cache[/dim]")
+            console.print(f"[dim]Stage 2 (branches/{backend}): resumed from cache[/dim]")
         else:
-            tree = await discover_branches(context, iteration=1, use_sdk=True)
+            tree = await discover_branches(context, iteration=1, use_sdk=use_sdk)
             cached_branches.write_text(json_lib.dumps(tree.model_dump(), indent=2, default=str))
-            console.print("[green]Stage 2 (branches/SDK): completed[/green]")
+            console.print(f"[green]Stage 2 (branches/{backend}): completed[/green]")
 
         (output_dir / f"{slug}_branches.txt").write_text(
             f"Domain: {context.domain}\n"
@@ -269,12 +273,12 @@ def explore(
         cached_vocab = state_dir / "vocabulary_sdk.json"
         if cached_vocab.exists():
             vocab = VocabularyIndex(**json_lib.loads(cached_vocab.read_text()))
-            console.print("[dim]Stage 3 (vocabulary/SDK): resumed from cache[/dim]")
+            console.print(f"[dim]Stage 3 (vocabulary/{backend}): resumed from cache[/dim]")
         else:
             settings = Settings()
-            vocab = await gather_vocabulary(tree, settings, domain=context.domain, use_sdk=True)
+            vocab = await gather_vocabulary(tree, settings, domain=context.domain, use_sdk=use_sdk)
             cached_vocab.write_text(json_lib.dumps(vocab.model_dump(), indent=2, default=str))
-            console.print("[green]Stage 3 (vocabulary/SDK): completed[/green]")
+            console.print(f"[green]Stage 3 (vocabulary/{backend}): completed[/green]")
 
         (output_dir / f"{slug}_vocabulary.txt").write_text(
             f"Domain: {context.domain}\n"
@@ -291,7 +295,8 @@ def explore(
 
         return context
 
-    console.print(f"[bold green]SDK Exploration:[/bold green] {input_file}")
+    backend_label = "Agno" if no_sdk else "SDK"
+    console.print(f"[bold green]{backend_label} Exploration:[/bold green] {input_file} (stages 1-{stage})")
     asyncio.run(_run())
     console.print(f"[green]Output written to {output_dir}/[/green]")
 

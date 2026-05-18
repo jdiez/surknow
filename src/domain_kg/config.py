@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     github_token: str = ""
 
     # Claude Code SDK
-    use_sdk: bool = False
+    use_sdk: bool = True
 
     # Search execution
     search_max_results_per_query: int = 10

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-05-18
+
+### Changed
+
+- SDK is now the default backend for `explore` command (was opt-in)
+- `explore` now runs all 3 stages by default (`--stage 3`)
+- Added `--no-sdk` flag to fall back to Agno backend
+- `use_sdk` config default changed to `true`
+- Explore command displays backend label in progress output
+
 ## [0.5.2] - 2026-05-18
 
 ### Added

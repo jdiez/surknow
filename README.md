@@ -33,8 +33,14 @@ uv run domain-kg run examples/input_vorex_multi_cancer.yaml -c config/vorex_mult
 # Run characterization with text output (no DB required, supports resume)
 uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
 
-# SDK-powered exploration with real web search (no DB required)
+# SDK-powered exploration with real web search (no DB required, default)
 uv run domain-kg explore examples/input_vorex_multi_cancer.yaml -o output/vorex_sdk
+
+# Run all 3 exploration stages
+uv run domain-kg explore examples/input_vorex_multi_cancer.yaml -o output/vorex_sdk --stage 3
+
+# Use Agno backend instead of SDK (requires Bedrock)
+uv run domain-kg explore examples/input_vorex_multi_cancer.yaml --no-sdk
 
 # Resume a previous run (skips completed stages automatically)
 uv run domain-kg characterize examples/input_vorex_multi_cancer.yaml -o output/vorex
@@ -104,7 +110,7 @@ See `examples/` for samples of each format.
 |---------|-------------|
 | `run` | Full pipeline: parse → agents → SurrealDB write |
 | `characterize` | Stages 1-4 with text file output and resume support |
-| `explore` | SDK-powered exploration with real web search (stages 1-3) |
+| `explore` | Domain exploration with web search — SDK default, `--no-sdk` for Agno |
 | `status` | Show graph entity/relationship counts and branch coverage |
 | `export` | Export graph as JSON, CSV, or human-readable text |
 
